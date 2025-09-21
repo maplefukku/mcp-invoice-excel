@@ -12,7 +12,12 @@ The Universal MCP Server for generating Excel invoices from structured data inpu
 - This server operates locally and doesn't require external API keys
 - Skip this step for basic invoice generation
 
-### Build locally
+### Install from npm (Recommended)
+```bash
+npm install -g mcp-invoice-excel
+```
+
+### Build locally (Development)
 ```bash
 cd /path/to/mcp-invoice-excel
 npm i
