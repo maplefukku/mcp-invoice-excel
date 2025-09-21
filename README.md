@@ -29,13 +29,13 @@ npm run build
 Use this one-liner (replace with your real values):
 
 ```bash
-claude mcp add "MCP Invoice Excel" -s user -- npx mcp-invoice-excel
+claude mcp add "mcp-invoice-excel" -s user -- npx mcp-invoice-excel
 ```
 
 To remove:
 
 ```bash
-claude mcp remove "MCP Invoice Excel"
+claude mcp remove "mcp-invoice-excel"
 ```
 
 ## Setup: Cursor
