@@ -2,8 +2,24 @@
   "name": "mcp-invoice-excel",
   "version": "1.0.0",
   "description": "MCP server for generating Excel invoices from input data",
-  "author": "Your Name",
+  "author": "maplefukku",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maplefukku/mcp-invoice-excel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maplefukku/mcp-invoice-excel/issues"
+  },
+  "homepage": "https://github.com/maplefukku/mcp-invoice-excel#readme",
+  "keywords": [
+    "mcp",
+    "invoice",
+    "excel",
+    "typescript",
+    "automation",
+    "japanese"
+  ],
   "type": "module",
   "main": "build/index.js",
   "bin": {
