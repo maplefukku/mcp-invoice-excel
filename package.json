@@ -23,7 +23,7 @@
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "mcp-invoice-excel": "./build/index.js"
+    "mcp-invoice-excel": "build/index.js"
   },
   "files": [
     "build"
