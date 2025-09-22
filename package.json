@@ -1,6 +1,6 @@
 {
   "name": "mcp-invoice-excel",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "MCP server for generating Excel invoices from input data",
   "author": "maplefukku",
   "license": "MIT",
