@@ -198,8 +198,40 @@ args = ["mcp-invoice-excel"]
   - templatePath (string, required) - Path to the Excel template file to analyze
 - **Output**: Analysis results including worksheets, placeholders, and structure
 
-## Example invocation (MCP tool call)
+### fill_japanese_template ⭐ **Perfect Template Reproduction**
+- **Description**: Fill a Japanese invoice template with 100% perfect formatting preservation using revolutionary file cloning technology
+- **Features**:
+  - 🎯 **100% Perfect Reproduction** - Exact template formatting preserved (fonts, colors, borders, cell sizes)
+  - 🇯🇵 **Japanese Business Ready** - Full support for Japanese text, dates, and business formats
+  - 🧮 **Formula Preservation** - All Excel formulas remain intact and functional
+  - 🚀 **High Performance** - File cloning approach for efficient processing
+- **Inputs**:
+  - templatePath (string, required) - Path to the Japanese Excel template file
+  - invoiceData (object, required):
+    - invoiceNumber (string, required) - Invoice number
+    - issueDate (string, required) - Issue date (YYYY-MM-DD)
+    - dueDate (string, optional) - Due date (YYYY-MM-DD)
+    - companyName (string, required) - Your company name
+    - companyPostal (string, optional) - Your company postal code (e.g., 〒111-0000)
+    - companyAddress (string, optional) - Your company address (use \n for line breaks)
+    - companyEmail (string, optional) - Your company email
+    - clientName (string, required) - Client company name
+    - clientPostal (string, optional) - Client postal code (e.g., 〒111-2222)
+    - clientAddress (string, optional) - Client address (use \n for line breaks)
+    - bankAccount (string, optional) - Bank account information for payment
+    - bankName (string, optional) - Account holder name
+    - items (array, required):
+      - description (string, required) - Item description
+      - quantity (number, required) - Quantity
+      - unitPrice (number, required) - Unit price
+      - taxRate (number, optional) - Tax rate as decimal (e.g., 0.1 for 10%)
+    - notes (string, optional) - Additional notes
+  - outputPath (string, required) - Path where the filled Excel file should be saved
+- **Output**: Success message with perfect template reproduction confirmation
 
+## Example invocations (MCP tool calls)
+
+### Standard Invoice Creation
 ```json
 {
   "tool": "create_invoice",
@@ -243,11 +275,64 @@ args = ["mcp-invoice-excel"]
 }
 ```
 
+### Perfect Japanese Template Reproduction ⭐
+```json
+{
+  "tool": "fill_japanese_template",
+  "arguments": {
+    "templatePath": "/path/to/japanese_invoice_template.xlsx",
+    "invoiceData": {
+      "invoiceNumber": "INV-2025-001",
+      "issueDate": "2025-01-22",
+      "dueDate": "2025-02-28",
+      "companyName": "株式会社サンプル",
+      "companyPostal": "〒150-0002",
+      "companyAddress": "東京都渋谷区渋谷2-21-1\nヒカリエ15F",
+      "companyEmail": "billing@sample.co.jp",
+      "clientName": "クライアント株式会社",
+      "clientPostal": "〒100-0005",
+      "clientAddress": "東京都千代田区丸の内1-9-1\nグラントウキョウサウスタワー8F",
+      "bankAccount": "みずほ銀行 渋谷支店（002） 普通 1234567",
+      "bankName": "カブシキガイシャサンプル",
+      "items": [
+        {
+          "description": "ウェブサイト開発",
+          "quantity": 1,
+          "unitPrice": 500000
+        },
+        {
+          "description": "システム保守・運用",
+          "quantity": 3,
+          "unitPrice": 100000
+        }
+      ],
+      "notes": "お振込み確認後、作業開始とさせていただきます。"
+    },
+    "outputPath": "/path/to/perfect_japanese_invoice.xlsx"
+  }
+}
+```
+
+## Key Features
+
+### 🎯 Perfect Template Reproduction (v1.1.0+)
+- **Revolutionary file cloning technology** ensures 100% exact template formatting preservation
+- **Zero formatting drift** - your template's appearance is perfectly maintained
+- **Japanese business ready** with full support for Japanese text, dates, and business formats
+- **Formula preservation** - all Excel calculations remain intact and functional
+
+### 🛠️ Multiple Invoice Creation Methods
+- **create_invoice** - Generate invoices from scratch with standard formatting
+- **create_invoice_from_template** - Fill existing templates with placeholder replacement
+- **fill_japanese_template** - Perfect reproduction for Japanese business templates
+- **analyze_template** - Understand your template structure before filling
+
 ## Troubleshooting
 - Ensure Node 18+ is installed
 - Local runs: `npx mcp-invoice-excel` after `npm run build`
 - Inspect publish artifacts: `npm pack --dry-run`
 - For template analysis, provide the path to your Excel template file
+- For perfect Japanese template reproduction, use `fill_japanese_template` tool
 
 ## References
 - MCP SDK: https://modelcontextprotocol.io/docs/sdks
