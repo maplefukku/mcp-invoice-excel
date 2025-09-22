@@ -677,17 +677,29 @@ class InvoiceExcelServer {
   }) {
     const { templatePath, invoiceData, outputPath } = args;
 
-    // Load the template
+    // Load the template workbook completely
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(templatePath);
 
     const worksheet = workbook.worksheets[0];
 
-    // Japanese invoice template cell mappings based on actual template analysis
+    // Store original column widths and row heights before modification
+    const originalColumns = worksheet.columns.map((col: any) => ({
+      width: col.width
+    }));
+    const originalRows: any[] = [];
+    for (let i = 1; i <= worksheet.rowCount; i++) {
+      const row = worksheet.getRow(i);
+      originalRows[i] = {
+        height: row.height
+      };
+    }
+
+    // Japanese invoice template cell mappings based on template analysis
     const cellMappings = {
       // Header information
-      issueDate: 'G1',          // 発行日 (2025-09-01が入っている)
-      dueDate: 'C18',           // 振込期限 (2024-03-31が入っている)
+      issueDate: 'G1',          // 発行日
+      dueDate: 'C18',           // 振込期限
 
       // Company information (issuer/sender) - right side
       companyPostal: 'G7',      // 〒111-0000
@@ -702,86 +714,125 @@ class InvoiceExcelServer {
       clientAddress1: 'B7',     // 東京都中央区9-9-9
       clientAddress2: 'B8',     // XXマンション902号室
 
-      // Totals - G29 contains the total formula (=IF(SUM(G21:G28)=0,"",SUM(G21:G28)))
-      totalAmount: 'G29',       // 合計 (SUM formula result)
-
-      // Item rows start from row 21 (A21 has セミナー登壇費)
+      // Item rows start from row 21
       itemStartRow: 21,
       itemEndRow: 28,
       itemColumns: {
         description: 'A',       // 品名・内容 (A21-C21 merged)
         quantity: 'D',          // 数量 (D21)
         unitPrice: 'E',         // 単価（税込） (E21)
-        amount: 'G'             // 金額 (G21, has formula: =if(E21 = "" , "" , if(D21 = "" , 1*E21 , D21*E21)))
+        amount: 'G'             // 金額 (G21, has formula)
       },
 
       // Bank information
-      bankInfo: 'C32',          // お振込先: 〇〇銀行 アアア支店（111） 普通 1111111
-      bankName: 'C33'           // 名義：タナカタロウ
+      bankInfo: 'C32',          // お振込先
+      bankName: 'C33'           // 名義
     };
 
-    // Fill basic information
+    // Helper function to preserve cell formatting while updating value
+    const updateCellValue = (cellAddress: string, newValue: any) => {
+      const cell = worksheet.getCell(cellAddress);
+      const originalStyle = { ...cell.style };
+      const originalNumFmt = cell.numFmt;
+      const originalFormula = cell.formula;
+
+      // Update value
+      if (newValue instanceof Date) {
+        cell.value = newValue;
+        // Preserve Japanese date format if it exists
+        if (originalNumFmt && originalNumFmt.includes('年')) {
+          cell.numFmt = originalNumFmt;
+        }
+      } else {
+        cell.value = newValue;
+      }
+
+      // Restore original formatting
+      cell.style = originalStyle;
+      if (originalNumFmt && !(newValue instanceof Date)) {
+        cell.numFmt = originalNumFmt;
+      }
+    };
+
+    // Update invoice data while preserving all formatting
     if (invoiceData.issueDate) {
-      worksheet.getCell(cellMappings.issueDate).value = new Date(invoiceData.issueDate);
+      updateCellValue(cellMappings.issueDate, new Date(invoiceData.issueDate));
     }
 
     if (invoiceData.dueDate) {
-      worksheet.getCell(cellMappings.dueDate).value = new Date(invoiceData.dueDate);
+      updateCellValue(cellMappings.dueDate, new Date(invoiceData.dueDate));
     }
 
-    // Company information (sender/issuer)
+    // Company information
     if (invoiceData.companyName) {
-      worksheet.getCell(cellMappings.companyName).value = invoiceData.companyName;
+      updateCellValue(cellMappings.companyName, invoiceData.companyName);
     }
 
     if (invoiceData.companyPostal) {
-      worksheet.getCell(cellMappings.companyPostal).value = invoiceData.companyPostal;
+      updateCellValue(cellMappings.companyPostal, invoiceData.companyPostal);
     }
 
     if (invoiceData.companyAddress) {
-      // Split address into parts if needed
       const addressParts = invoiceData.companyAddress.split('\n');
       if (addressParts[0]) {
-        worksheet.getCell(cellMappings.companyAddress1).value = addressParts[0];
+        updateCellValue(cellMappings.companyAddress1, addressParts[0]);
       }
       if (addressParts[1]) {
-        worksheet.getCell(cellMappings.companyAddress2).value = addressParts[1];
+        updateCellValue(cellMappings.companyAddress2, addressParts[1]);
       }
     }
 
     if (invoiceData.companyEmail) {
-      worksheet.getCell(cellMappings.companyEmail).value = invoiceData.companyEmail;
+      updateCellValue(cellMappings.companyEmail, invoiceData.companyEmail);
     }
 
-    // Client information (recipient)
+    // Client information
     if (invoiceData.clientName) {
-      worksheet.getCell(cellMappings.clientName).value = invoiceData.clientName;
+      updateCellValue(cellMappings.clientName, invoiceData.clientName);
     }
 
     if (invoiceData.clientPostal) {
-      worksheet.getCell(cellMappings.clientPostal).value = invoiceData.clientPostal;
+      updateCellValue(cellMappings.clientPostal, invoiceData.clientPostal);
     }
 
     if (invoiceData.clientAddress) {
-      // Split address into parts if needed
       const addressParts = invoiceData.clientAddress.split('\n');
       if (addressParts[0]) {
-        worksheet.getCell(cellMappings.clientAddress1).value = addressParts[0];
+        updateCellValue(cellMappings.clientAddress1, addressParts[0]);
       }
       if (addressParts[1]) {
-        worksheet.getCell(cellMappings.clientAddress2).value = addressParts[1];
+        updateCellValue(cellMappings.clientAddress2, addressParts[1]);
       }
     }
 
-    // Clear existing items first (rows 21-28)
+    // Clear existing items data while preserving formatting
     for (let row = cellMappings.itemStartRow; row <= cellMappings.itemEndRow; row++) {
-      worksheet.getCell(`${cellMappings.itemColumns.description}${row}`).value = null;
-      worksheet.getCell(`${cellMappings.itemColumns.quantity}${row}`).value = null;
-      worksheet.getCell(`${cellMappings.itemColumns.unitPrice}${row}`).value = null;
-      // Don't clear amount column as it has formulas
+      // Clear only the data, keep all formatting and formulas intact
+      const descCell = worksheet.getCell(`${cellMappings.itemColumns.description}${row}`);
+      const qtyCell = worksheet.getCell(`${cellMappings.itemColumns.quantity}${row}`);
+      const priceCell = worksheet.getCell(`${cellMappings.itemColumns.unitPrice}${row}`);
+
+      // Store original styles
+      const descStyle = { ...descCell.style };
+      const qtyStyle = { ...qtyCell.style };
+      const priceStyle = { ...priceCell.style };
+      const priceNumFmt = priceCell.numFmt;
+
+      // Clear values
+      descCell.value = null;
+      qtyCell.value = null;
+      priceCell.value = null;
+
+      // Restore formatting
+      descCell.style = descStyle;
+      qtyCell.style = qtyStyle;
+      priceCell.style = priceStyle;
+      priceCell.numFmt = priceNumFmt;
+
+      // Don't touch amount column as it has formulas
     }
 
-    // Fill items
+    // Fill items with data while preserving formatting
     let totalCalculated = 0;
 
     if (invoiceData.items && Array.isArray(invoiceData.items)) {
@@ -789,51 +840,56 @@ class InvoiceExcelServer {
         if (index < 8) { // Max 8 items (rows 21-28)
           const rowNumber = cellMappings.itemStartRow + index;
 
-          // Description (A21-C21 are merged)
-          worksheet.getCell(`${cellMappings.itemColumns.description}${rowNumber}`).value = item.description;
+          // Update each cell while preserving its formatting
+          updateCellValue(`${cellMappings.itemColumns.description}${rowNumber}`, item.description);
+          updateCellValue(`${cellMappings.itemColumns.quantity}${rowNumber}`, item.quantity);
+          updateCellValue(`${cellMappings.itemColumns.unitPrice}${rowNumber}`, item.unitPrice);
 
-          // Quantity
-          worksheet.getCell(`${cellMappings.itemColumns.quantity}${rowNumber}`).value = item.quantity;
-
-          // Unit Price
-          worksheet.getCell(`${cellMappings.itemColumns.unitPrice}${rowNumber}`).value = item.unitPrice;
-
-          // The amount column (G) has formulas that will auto-calculate
-          // Calculate for our own total
           totalCalculated += item.quantity * item.unitPrice;
         }
       });
     }
 
-    // The total will be automatically calculated by the G29 formula
-    // But we can optionally override if totalAmount is provided
-    if (invoiceData.totalAmount !== undefined) {
-      // If a specific total is provided, we might need to adjust the last item's price
-      // or add a manual total. For now, let the formula handle it.
-    }
-
-    // Add bank information if provided
+    // Update bank information while preserving formatting
     if (invoiceData.bankAccount) {
-      worksheet.getCell(cellMappings.bankInfo).value = invoiceData.bankAccount;
+      updateCellValue(cellMappings.bankInfo, invoiceData.bankAccount);
     }
 
     if (invoiceData.bankName) {
-      worksheet.getCell(cellMappings.bankName).value = `名義：${invoiceData.bankName}`;
+      updateCellValue(cellMappings.bankName, `名義：${invoiceData.bankName}`);
     }
 
-    // Add notes if provided (replace existing note area)
+    // Add notes if provided (find appropriate cell)
     if (invoiceData.notes) {
-      worksheet.getCell('B37').value = invoiceData.notes;
+      // Look for a notes area in the template
+      const notesCell = worksheet.getCell('B37') || worksheet.getCell('A37');
+      if (notesCell) {
+        updateCellValue(notesCell.address, invoiceData.notes);
+      }
     }
 
-    // Save the filled template
+    // Restore original column widths and row heights to ensure exact formatting
+    worksheet.columns.forEach((col: any, index: number) => {
+      if (originalColumns[index]) {
+        col.width = originalColumns[index].width;
+      }
+    });
+
+    for (let i = 1; i <= worksheet.rowCount; i++) {
+      if (originalRows[i]) {
+        const row = worksheet.getRow(i);
+        row.height = originalRows[i].height;
+      }
+    }
+
+    // Save the workbook with all formatting preserved
     await workbook.xlsx.writeFile(outputPath);
 
     return {
       content: [
         {
           type: 'text',
-          text: `Japanese invoice template filled successfully!\n` +
+          text: `Japanese invoice template filled successfully with complete formatting preservation!\n` +
                 `Template: ${templatePath}\n` +
                 `Output: ${outputPath}\n` +
                 `Company: ${invoiceData.companyName || 'N/A'}\n` +
@@ -841,7 +897,8 @@ class InvoiceExcelServer {
                 `Items: ${invoiceData.items?.length || 0}\n` +
                 `Calculated Total: ¥${totalCalculated.toLocaleString()}\n` +
                 `Issue Date: ${invoiceData.issueDate || 'N/A'}\n` +
-                `Due Date: ${invoiceData.dueDate || 'N/A'}`
+                `Due Date: ${invoiceData.dueDate || 'N/A'}\n` +
+                `All original formatting, fonts, colors, and styles preserved!`
         }
       ]
     };
