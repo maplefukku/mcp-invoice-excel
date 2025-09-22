@@ -1,0 +1,78 @@
+=== DETAILED COMPARISON ANALYSIS ===
+
+## FILE SIZE DIFFERENCES:
+- Original template: 6,901 bytes
+- Generated output: 8,042 bytes (+1,141 bytes difference)
+
+## KEY CONTENT DIFFERENCES:
+
+### 1. DATE VALUES (Cell G1):
+- Original: "2025-09-01T00:00:00.000Z" (September 1, 2025)
+- Generated: "2025-01-23T00:00:00.000Z" (January 23, 2025)
+
+### 2. CLIENT INFORMATION (Cell B4):
+- Original: "株式会社インボイス生成"
+- Generated: "テストクライアント"
+
+### 3. COMPANY NAME (Cell G12):
+- Original: "田中太郎"
+- Generated: "デバッグテスト株式会社"
+
+### 4. INVOICE ITEMS (Cell A21):
+- Original: "セミナー登壇費"
+- Generated: "デバッグテスト項目"
+
+### 5. PRICING DATA (Cell E21):
+- Original: 20,000 yen
+- Generated: 100,000 yen (but calculated result shows 20,000)
+
+### 6. DATA TYPE DIFFERENCES (Cell D21):
+- Original: "1" (string type)
+- Generated: 1 (number type)
+
+## FORMATTING DIFFERENCES:
+
+### Alignment Properties:
+Several cells show differences in alignment properties:
+- Original alignment includes "shrinkToFit":false
+- Generated alignment missing "shrinkToFit" property in some cells
+
+Examples:
+- Cell G1: Original has "shrinkToFit":false, Generated missing this property
+- Cell A2: Original has "shrinkToFit":false, Generated missing this property
+- Cell C4: Original has "shrinkToFit":false, Generated only has "wrapText":true
+
+### Cell H11 (Email):
+- Original: includes "wrapText":false
+- Generated: missing "wrapText" property (defaults to true)
+
+## PAGE SETUP DIFFERENCES:
+- Original: "useFirstPageNumber": false
+- Generated: "useFirstPageNumber": true
+
+## WORKBOOK PROPERTIES:
+- Original: No creator/modified properties shown
+- Generated: Shows creator as "Unknown" and creation/modification timestamps
+
+## POTENTIAL VISUAL IMPACT:
+
+### Critical Issues:
+1. **Data Mismatches**: The pricing shows 100,000 in the unit price but calculates to 20,000 in the total - this suggests incorrect data population.
+
+2. **Missing Formatting Properties**: The "shrinkToFit" property differences could cause text to appear differently in cells, especially if the content doesn't fit the cell width.
+
+3. **Text Wrapping**: Email cell formatting differences could affect how the email address displays.
+
+### Minor Issues:
+1. **Date Values**: Different dates will be visible to users
+2. **Content Values**: Different company names and item descriptions
+3. **Page Setup**: First page numbering difference (likely not visible)
+
+## RECOMMENDATIONS:
+
+1. **Verify Data Population Logic**: Check why unit price shows 100,000 but total calculates to 20,000
+2. **Preserve All Alignment Properties**: Ensure "shrinkToFit" and other formatting properties are fully preserved
+3. **Check Text Wrapping**: Verify email display formatting
+4. **Validate Content Mapping**: Ensure correct data is being populated in each field
+
+The most significant issues are the data inconsistencies and missing formatting properties that could affect visual appearance.

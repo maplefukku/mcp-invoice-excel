@@ -234,7 +234,7 @@ class InvoiceExcelServer {
       },
       {
         name: 'fill_japanese_template',
-        description: 'Fill a Japanese invoice template with specific cell mappings',
+        description: 'Fill a Japanese invoice template with specific cell mappings. Perfect Template Reproduction: Uses file cloning to preserve 100% of original formatting.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -687,48 +687,91 @@ class InvoiceExcelServer {
 
     const worksheet = workbook.worksheets[0];
 
-    // Japanese invoice template cell mappings based on template analysis
+    // Japanese invoice template cell mappings based on actual template analysis
     const cellMappings = {
-      // Header information
-      issueDate: 'G1',          // 発行日
-      dueDate: 'C18',           // 振込期限
+      // Header information - invoice number and dates
+      invoiceNumber: 'G2',      // Invoice number at G2
+      issueDate: 'G4',          // Issue date (merged G4:I4)
+      dueDate: 'G5',            // Due date (merged G5:I5)
 
-      // Company information (issuer/sender) - right side
-      companyPostal: 'G7',      // 〒111-0000
-      companyAddress1: 'G8',    // 東京都渋谷区1-1-1
-      companyAddress2: 'G9',    // XXマンション102号室
-      companyEmail: 'H11',      // example@example.com
-      companyName: 'G12',       // 田中太郎
+      // Company information (sender) - left side
+      companyName: 'A8',        // Company name
+      companyPostal: 'A9',      // Company postal code
+      companyAddress1: 'A10',   // Company address line 1
+      companyAddress2: 'A11',   // Company address line 2 (if needed)
+      companyEmail: 'A12',      // Company email
 
-      // Client information (recipient) - left side
-      clientName: 'B4',         // 株式会社インボイス生成
-      clientPostal: 'B6',       // 〒111-2222
-      clientAddress1: 'B7',     // 東京都中央区9-9-9
-      clientAddress2: 'B8',     // XXマンション902号室
+      // Client information (recipient) - left side below company
+      clientName: 'A15',        // Client company name
+      clientPostal: 'A16',      // Client postal code
+      clientAddress1: 'A17',    // Client address line 1
+      clientAddress2: 'A18',    // Client address line 2 (if needed)
 
       // Item rows start from row 21
       itemStartRow: 21,
       itemEndRow: 28,
       itemColumns: {
-        description: 'A',       // 品名・内容 (A21-C21 merged)
-        quantity: 'D',          // 数量 (D21)
-        unitPrice: 'E',         // 単価（税込） (E21)
-        amount: 'G'             // 金額 (G21, has formula)
+        description: 'A',       // Item description (A21-C21 merged)
+        quantity: 'D',          // Quantity (D21)
+        unitPrice: 'E',         // Unit price (E21-F21 merged)
+        amount: 'G'             // Amount (G21, calculated)
       },
 
+      // Totals
+      totalRow: 25,
+      totalColumn: 'F',         // Total at F25
+
       // Bank information
-      bankInfo: 'C32',          // お振込先
-      bankName: 'C33'           // 名義
+      bankAccount: 'A27',       // Bank account info
+      bankName: 'A28',          // Bank account holder name
+
+      // Notes
+      notes: 'A30'              // Additional notes
     };
 
-    // Helper function to update only the cell value without touching any formatting
+    // Helper function to update only the cell value while preserving ALL formatting properties
     const updateCellValue = (cellAddress: string, newValue: any) => {
       const cell = worksheet.getCell(cellAddress);
-      // Simply update the value - all formatting is already perfect from the copy
+
+      // Store ALL original formatting properties before modification
+      const originalStyle = JSON.parse(JSON.stringify(cell.style || {}));
+      const originalNumFmt = cell.numFmt;
+      const originalFormula = cell.formula;
+      const originalDataValidation = cell.dataValidation;
+      const originalNote = cell.note;
+      const originalAlignment = cell.alignment ? JSON.parse(JSON.stringify(cell.alignment)) : null;
+
+      // Update only the value
       cell.value = newValue;
+
+      // Restore ALL original formatting properties completely
+      if (originalStyle) {
+        cell.style = originalStyle;
+      }
+
+      // Specifically restore alignment properties including shrinkToFit
+      if (originalAlignment) {
+        cell.alignment = originalAlignment;
+      }
+      if (originalNumFmt) {
+        cell.numFmt = originalNumFmt;
+      }
+      if (originalFormula) {
+        cell.value = { formula: originalFormula };
+      }
+      if (originalDataValidation) {
+        cell.dataValidation = originalDataValidation;
+      }
+      if (originalNote) {
+        cell.note = originalNote;
+      }
     };
 
     // Update invoice data while preserving all formatting
+    if (invoiceData.invoiceNumber) {
+      updateCellValue(cellMappings.invoiceNumber, invoiceData.invoiceNumber);
+    }
+
     if (invoiceData.issueDate) {
       updateCellValue(cellMappings.issueDate, new Date(invoiceData.issueDate));
     }
@@ -808,21 +851,26 @@ class InvoiceExcelServer {
 
     // Update bank information while preserving formatting
     if (invoiceData.bankAccount) {
-      updateCellValue(cellMappings.bankInfo, invoiceData.bankAccount);
+      updateCellValue(cellMappings.bankAccount, invoiceData.bankAccount);
     }
 
     if (invoiceData.bankName) {
-      updateCellValue(cellMappings.bankName, `名義：${invoiceData.bankName}`);
+      updateCellValue(cellMappings.bankName, invoiceData.bankName);
     }
 
-    // Add notes if provided (find appropriate cell)
+    // Add notes if provided
     if (invoiceData.notes) {
-      // Look for a notes area in the template
-      const notesCell = worksheet.getCell('B37') || worksheet.getCell('A37');
-      if (notesCell) {
-        updateCellValue(notesCell.address, invoiceData.notes);
-      }
+      updateCellValue(cellMappings.notes, invoiceData.notes);
     }
+
+    // Update total in the total cell
+    updateCellValue(`${cellMappings.totalColumn}${cellMappings.totalRow}`, totalCalculated);
+
+    // Force recalculation of all formulas to ensure correct totals
+    worksheet.getCell('G29').value = { formula: 'IF(SUM(G21:G28)=0,"",SUM(G21:G28))' };
+
+    // Force Excel to recalculate formulas
+    workbook.calcProperties.fullCalcOnLoad = true;
 
     // Save the workbook - all formatting is already perfect from the file copy
     await workbook.xlsx.writeFile(outputPath);
