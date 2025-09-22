@@ -249,9 +249,11 @@ class InvoiceExcelServer {
                 issueDate: { type: 'string', description: 'Issue date (YYYY-MM-DD)' },
                 dueDate: { type: 'string', description: 'Due date (YYYY-MM-DD)' },
                 companyName: { type: 'string', description: 'Your company name' },
+                companyPostal: { type: 'string', description: 'Your company postal code (e.g., 〒111-0000)' },
                 companyAddress: { type: 'string', description: 'Your company address (use \\n for line breaks)' },
                 companyEmail: { type: 'string', description: 'Your company email' },
                 clientName: { type: 'string', description: 'Client company name' },
+                clientPostal: { type: 'string', description: 'Client postal code (e.g., 〒111-2222)' },
                 clientAddress: { type: 'string', description: 'Client address (use \\n for line breaks)' },
                 bankAccount: { type: 'string', description: 'Bank account information for payment' },
                 bankName: { type: 'string', description: 'Account holder name' },
@@ -700,7 +702,7 @@ class InvoiceExcelServer {
       clientAddress1: 'B7',     // 東京都中央区9-9-9
       clientAddress2: 'B8',     // XXマンション902号室
 
-      // Totals - C16/D16 shows total (formula references G29)
+      // Totals - G29 contains the total formula (=IF(SUM(G21:G28)=0,"",SUM(G21:G28)))
       totalAmount: 'G29',       // 合計 (SUM formula result)
 
       // Item rows start from row 21 (A21 has セミナー登壇費)
@@ -710,12 +712,12 @@ class InvoiceExcelServer {
         description: 'A',       // 品名・内容 (A21-C21 merged)
         quantity: 'D',          // 数量 (D21)
         unitPrice: 'E',         // 単価（税込） (E21)
-        amount: 'G'             // 金額 (G21, has formula)
+        amount: 'G'             // 金額 (G21, has formula: =if(E21 = "" , "" , if(D21 = "" , 1*E21 , D21*E21)))
       },
 
       // Bank information
-      bankInfo: 'C32',          // お振込先
-      bankName: 'C33'           // 名義
+      bankInfo: 'C32',          // お振込先: 〇〇銀行 アアア支店（111） 普通 1111111
+      bankName: 'C33'           // 名義：タナカタロウ
     };
 
     // Fill basic information
@@ -730,6 +732,10 @@ class InvoiceExcelServer {
     // Company information (sender/issuer)
     if (invoiceData.companyName) {
       worksheet.getCell(cellMappings.companyName).value = invoiceData.companyName;
+    }
+
+    if (invoiceData.companyPostal) {
+      worksheet.getCell(cellMappings.companyPostal).value = invoiceData.companyPostal;
     }
 
     if (invoiceData.companyAddress) {
@@ -750,6 +756,10 @@ class InvoiceExcelServer {
     // Client information (recipient)
     if (invoiceData.clientName) {
       worksheet.getCell(cellMappings.clientName).value = invoiceData.clientName;
+    }
+
+    if (invoiceData.clientPostal) {
+      worksheet.getCell(cellMappings.clientPostal).value = invoiceData.clientPostal;
     }
 
     if (invoiceData.clientAddress) {
